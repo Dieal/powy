@@ -47,6 +47,7 @@ impl Buffer {
         let mut cells: Vec<Cell> = Vec::new();
         let (mut row, mut col) = (0, 1);
         for line in text.lines() {
+            col = 1;
             for char in line.chars() {
                 cells.push(Cell { char, row, col, });
                 col += 1;
