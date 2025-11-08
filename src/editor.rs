@@ -31,18 +31,27 @@ impl Editor {
         self.buffers.last().expect("Should exist")
     }
 
-    pub fn add_buffer_from(&mut self, buffer: Buffer) {
+    pub fn add_buffer_from(&mut self, buffer: Buffer) -> &Buffer{
         self.buffers.push(buffer);
+        self.buffers.last().expect("Should exist")
+    }
+
+    pub fn add_buffer_from_text(&mut self, text: String) -> &Buffer {
+        self.add_buffer_from(Buffer::from_text(text))
     }
 
     pub fn set_screen_buffer(&mut self, buffer: Buffer) {
         self.screen.set_current_buffer(buffer);
     }
 
-    pub fn add_buffer_from_text(&mut self, text: String) -> &Buffer {
-        todo!();
-        // self.buffers.push(buffer);
-        self.buffers.last().expect("Should exist")
+    pub fn set_screen_buffer_from_index(&mut self, index: usize) {
+        if let Some(buffer) = self.buffers.get(index) {
+            self.screen.set_current_buffer(buffer.clone()); // TODO Make screen accept a reference (need to use lifetime annotations)
+        }
+    }
+
+    pub fn draw_current_buffer(&mut self) {
+        self.screen.draw_current_buffer();
     }
 
     pub fn remove_buffer(&mut self, index: usize) -> Option<Buffer> {

@@ -1,33 +1,17 @@
 use std::{io, thread::sleep, time::Duration};
 
 use crossterm::terminal::enable_raw_mode;
-use text_editor::{editor::Editor, Buffer, Cell};
+use text_editor::{editor::Editor, screen::Screen, Buffer, Cell};
 
 fn main() -> io::Result<()> {
     enable_raw_mode()?;
 
+    let text = String::from("Prova 12345");
     let mut editor = Editor::new()?;
-    let screen = editor.get_screen_mut();
-    let mut buffer = Buffer::default();
-    buffer.cells.push(Cell {
-        char: 'c',
-        row: 1,
-        col: 1,
-    });
-
-    buffer.cells.push(Cell {
-        char: 'a',
-        row: 1,
-        col: 2,
-    });
-
-    buffer.cells.push(Cell {
-        char: 'o',
-        row: 1,
-        col: 3,
-    });
-    screen.set_current_buffer(buffer);
-    screen.draw_current_buffer();
+    editor.add_buffer_from_text(text);
+    editor.set_screen_buffer_from_index(0);
+    editor.draw_current_buffer();
+    Screen::flush();
     sleep(Duration::from_secs(3));
 
     Ok(())

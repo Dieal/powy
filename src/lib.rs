@@ -5,7 +5,7 @@ pub mod screen;
 pub mod editor;
 
 #[allow(dead_code)]
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct Cursor {
     row: u16,
     column: u16,
@@ -27,6 +27,7 @@ impl Cursor {
 }
 
 #[allow(dead_code)]
+#[derive(Clone)]
 pub struct Cell {
     pub char: char,
     pub row: u16,
@@ -34,7 +35,7 @@ pub struct Cell {
 }
 
 #[allow(dead_code)]
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct Buffer {
     pub cells: Vec<Cell>,
     cursor: Cursor,
@@ -43,7 +44,21 @@ pub struct Buffer {
 
 impl Buffer {
     fn from_text(text: String) -> Buffer {
-        todo!()
+        let mut cells: Vec<Cell> = Vec::new();
+        let (mut row, mut col) = (0, 1);
+        for line in text.lines() {
+            for char in line.chars() {
+                cells.push(Cell { char, row, col, });
+                col += 1;
+            }
+            row += 1;
+        }
+
+        Buffer {
+            cells,
+            cursor: Cursor::default(),
+            path: None,
+        }
     }
 }
 
