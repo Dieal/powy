@@ -1,3 +1,5 @@
+use crossterm::event::{self, read, Event::Key, KeyCode};
+
 use crate::{screen::Screen, Buffer};
 
 #[derive(Default)]
@@ -59,5 +61,21 @@ impl Editor {
             return Some(self.buffers.remove(index));
         }
         None
+    }
+
+    pub fn run(&mut self) {
+        self.screen.draw_current_buffer();
+
+        // TODO Add normal, insert and visual mode
+        loop {
+            if let Ok(Key(key)) = read() {
+                match key.code {
+                    KeyCode::Esc => break,
+                    KeyCode::Char(c) => (), // Update buffer with character
+                    _ => (),
+                }
+            }
+            self.screen.draw_current_buffer();
+        }
     }
 }

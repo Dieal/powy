@@ -16,13 +16,12 @@ fn main() -> io::Result<()> {
         if let Ok(text) = fs::read_to_string(path) {
             editor.add_buffer_from_text(text);
             editor.set_screen_buffer_from_index(0);
-            editor.draw_current_buffer();
         } else {
             print!("File {path} not found");
         }
-        Screen::flush();
     }
-    sleep(Duration::from_secs(3));
+    editor.run();
+    Screen::flush();
 
     Ok(())
 }
