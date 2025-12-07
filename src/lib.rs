@@ -1,5 +1,6 @@
 use constants::{Direction, ESC};
 use log::{debug, info};
+use screen::Screen;
 
 mod constants;
 pub mod screen;
@@ -119,11 +120,12 @@ pub struct Buffer {
 impl Default for Buffer {
     fn default() -> Self {
         let mut cursor = Cursor::default();
-        cursor.jump_to_col(1); // Starts from column 1 so that the cursor is in front of the character
+        cursor.jump(1, 1); // Starts from column and row 1 for better rendering
         cursor.set_style(CursorStyle::SteadyBar);
 
         let mut ghost_cursor = Cursor::default();
         ghost_cursor.set_visibility(false);
+        info!("{} {}", cursor.row, cursor.col);
 
         Self {
             lines: vec![String::new()],
@@ -142,10 +144,10 @@ impl Buffer {
         }
     }
 
-    pub fn insert_char(&mut self, char: char) {
+    fn insert_char(&mut self, char: char) {
         let cursor = &mut self.cursor;
         let (row, col) = (cursor.row, cursor.col);
-        if let Some(line) = self.lines.get_mut(row) {
+        if let Some(line) = self.lines.get_mut(row.saturating_sub(1)) {
             line.insert(col - 1, char);
         } else {
             self.lines.push(String::from(char));
@@ -156,7 +158,22 @@ impl Buffer {
     fn remove_char(&mut self) {
         let cursor = &mut self.cursor;
         let (row, col) = (cursor.row, cursor.col);
-        if let Some(line) = self.lines.get_mut(row) {
+
+        // Cursor row starts from one, but lines indexes start from 0
+        // TODO: add an abstraction layer for this problem
+        let line_row = row.saturating_sub(1);
+        if let Some(line) = self.lines.get_mut(line_row) {
+            if line.is_empty() {
+                if line_row >= 1 {
+                    self.lines.remove(line_row);
+                    let top_row = line_row.saturating_sub(1);
+                    if let Some(top_line) = self.lines.get(top_row) { // Line Row has become the index of the top line
+                        cursor.jump(line_row, top_line.len() + 1);
+                    }
+                }
+                return;
+            }
+
             line.pop();
             if cursor.col > 1 { // Bounds the column to 1 (see the constructor for the reasons)
                 cursor.jump_to_col(col.saturating_sub(1));
@@ -164,7 +181,25 @@ impl Buffer {
         }
     }
 
-    pub fn insert_text(&mut self, text: String) {
+    fn new_line(&mut self) {
+        let cursor = &mut self.cursor;
+        self.lines.push(String::new());
+        cursor.jump(cursor.row + 1, 0);
+    }
+
+    fn get_row_index_from_cursor(&self) -> usize {
+        self.cursor.row.saturating_sub(1)
+    }
+
+    fn get_current_row(&self) -> Option<&String> {
+        self.lines.get(self.cursor.row.saturating_sub(1))
+    }
+
+    fn get_current_row_mut(&mut self) -> Option<&mut String> {
+        self.lines.get_mut(self.cursor.row.saturating_sub(1))
+    }
+
+    fn insert_text(&mut self, text: String) {
         let cursor = &self.cursor;
         let (row, col) = (cursor.row, cursor.col);
         if let Some(line) = self.lines.get_mut(row) {

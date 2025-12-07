@@ -1,4 +1,4 @@
-use crossterm::event::{self, read, Event::Key, KeyCode};
+use crossterm::event::{self, read, Event::Key, KeyCode, ModifierKeyCode};
 
 use crate::{screen::Screen, Buffer};
 
@@ -31,6 +31,7 @@ impl Editor {
                     KeyCode::Left => current_buf.cursor.move_by(crate::constants::Direction::Left, 1),
                     KeyCode::Right => current_buf.cursor.move_by(crate::constants::Direction::Right, 1), // TODO: Add Check if it's possible
                     KeyCode::Backspace => current_buf.remove_char(),
+                    KeyCode::Enter => current_buf.new_line(),
                     KeyCode::Char(c) => current_buf.insert_char(c), // Update buffer with character
                     _ => (),
                 }
