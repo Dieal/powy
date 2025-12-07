@@ -1,10 +1,16 @@
-use std::{env, fs, io, thread::sleep, time::Duration};
+use std::{env, fs::{self, File}, io};
 
 use crossterm::terminal::enable_raw_mode;
+use log::info;
+use simplelog::{CombinedLogger, Config, WriteLogger};
 use text_editor::{editor::Editor, screen::Screen};
 
 fn main() -> io::Result<()> {
     enable_raw_mode()?;
+
+    let _ = CombinedLogger::init(vec![
+        WriteLogger::new(simplelog::LevelFilter::Debug, Config::default(), File::create("./debug.log")?),
+    ]);
 
     let mut editor = Editor::new()?;
     let mut args = env::args();
@@ -15,7 +21,6 @@ fn main() -> io::Result<()> {
         let path = args.first().expect("Should have first argument");
         if let Ok(text) = fs::read_to_string(path) {
             editor.add_buffer_from_text(text);
-            editor.set_screen_buffer_from_index(0);
         } else {
             print!("File {path} not found");
         }
