@@ -5,15 +5,39 @@ mod constants;
 pub mod screen;
 pub mod editor;
 
+#[derive(Clone)]
+pub enum CursorStyle {
+    BlinkingBlock,
+    SteadyBlock,
+    BlinkingUnderline,
+    SteadyUnderline,
+    BlinkingBar,
+    SteadyBar,
+}
+
+impl CursorStyle {
+    // https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h3-Functions-using-CSI-_-ordered-by-the-final-character_s_, 
+    // "Set cursor style" section
+    fn value(&self) -> u8 {
+        match self {
+            Self::BlinkingBlock => 1,
+            Self::SteadyBlock => 2,
+            Self::BlinkingUnderline => 3,
+            Self::SteadyUnderline => 4,
+            Self::BlinkingBar => 5,
+            Self::SteadyBar => 6,
+        }
+    }
+}
+
 #[allow(dead_code)]
 #[derive(Clone)]
 pub struct Cursor {
     row: usize,
     col: usize,
     visible: bool,
+    style: CursorStyle,
 }
-
-// TODO: add cursor styles enum
 
 impl Cursor {
     pub fn move_by(&mut self, direction: Direction, offset: usize) {
@@ -47,6 +71,7 @@ impl Cursor {
     // Function that moves terminal cursor to the current state
     pub fn render(&mut self) {
         self.jump(self.row, self.col);
+        self.render_style();
         self.render_invisibility();
     }
 
@@ -57,6 +82,14 @@ impl Cursor {
             print!("{ESC}[?25l"); // Become invisible
         }
     }
+
+    fn render_style(&self) {
+        print!("{ESC}[{} q", self.style.value());
+    }
+
+    pub fn set_style (&mut self, style: CursorStyle) {
+        self.style = style;
+    }
 }
 
 impl Default for Cursor {
@@ -66,10 +99,10 @@ impl Default for Cursor {
             row,
             col,
             visible: true,
+            style: CursorStyle::BlinkingBlock,
         };
         cursor.set_visibility(true);
         cursor.jump(row, col);
-        print!("{ESC}[6 q");
         cursor
     }
 }
@@ -87,6 +120,7 @@ impl Default for Buffer {
     fn default() -> Self {
         let mut cursor = Cursor::default();
         cursor.jump_to_col(1); // Starts from column 1 so that the cursor is in front of the character
+        cursor.set_style(CursorStyle::SteadyBar);
 
         let mut ghost_cursor = Cursor::default();
         ghost_cursor.set_visibility(false);
