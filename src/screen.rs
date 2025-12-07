@@ -1,13 +1,12 @@
 use std::io::{Write};
 
-use crate::{constants::ESC, Buffer, Cursor};
+use crate::{constants::{Direction, ESC}, Buffer};
 
 #[allow(dead_code)]
 #[derive(Default)]
 pub struct Screen {
     width: u16,
     height: u16,
-    buffer: Option<Buffer>,
 }
 
 #[allow(dead_code)]
@@ -19,28 +18,21 @@ impl Screen {
         Ok(Screen {
             width,
             height,
-            buffer: None,
         })
     }
 
-    pub fn set_current_buffer(&mut self, buffer: Buffer) {
-        self.buffer = Some(buffer);
-    }
+    pub fn draw_buffer(&mut self, buffer: &mut Buffer) {
+        Self::erase();
 
-    pub fn remove_current_buffer(&mut self) {
-        self.buffer = None;
-    }
-
-    pub fn draw_current_buffer(&mut self) {
-        if let Some(buffer) = &mut self.buffer {
-            Self::erase();
-            
-            let cursor = &mut buffer.cursor;
-            for cell in &buffer.cells {
-                cursor.jump(cell.row, cell.col);
-                print!("{}", cell.char);
-            }
+        let ghost_cursor = &mut buffer.ghost_cursor;
+        ghost_cursor.render();
+        ghost_cursor.jump(0, 0);
+        for line in &buffer.lines {
+            print!("{}", line);
+            ghost_cursor.jump_to_col(0);
+            ghost_cursor.move_by(Direction::Down, 1);
         }
+        buffer.cursor.render();
         Self::flush();
     }
 

@@ -6,14 +6,37 @@ use crate::{screen::Screen, Buffer};
 pub struct Editor {
     screen: Screen,
     buffers: Vec<Buffer>,
+    current_buffer_index: usize,
 }
 
 impl Editor {
     pub fn new() -> std::io::Result<Self> {
+        let buffers: Vec<Buffer> = vec![Buffer::default()];
         Ok(Editor {
             screen: Screen::new()?,
-            buffers: Vec::new(),
+            buffers,
+            current_buffer_index: 0,
         })
+    }
+
+    pub fn run(&mut self) {
+        self.draw_current_buffer();
+
+        //  TODO: Add normal, insert and visual mode
+        loop {
+            if let Ok(Key(key)) = read() {
+                let current_buf = self.get_current_buffer_mut().expect("Should have a default current buffer");
+                match key.code {
+                    KeyCode::Esc => break,
+                    KeyCode::Left => current_buf.cursor.move_by(crate::constants::Direction::Left, 1),
+                    KeyCode::Right => current_buf.cursor.move_by(crate::constants::Direction::Right, 1), // TODO: Add Check if it's possible
+                    KeyCode::Backspace => current_buf.remove_char(),
+                    KeyCode::Char(c) => current_buf.insert_char(c), // Update buffer with character
+                    _ => (),
+                }
+            }
+            self.draw_current_buffer();
+        }
     }
 
     pub fn get_screen(&self) -> &Screen {
@@ -42,18 +65,18 @@ impl Editor {
         self.add_buffer_from(Buffer::from_text(text))
     }
 
-    pub fn set_screen_buffer(&mut self, buffer: Buffer) {
-        self.screen.set_current_buffer(buffer);
-    }
-
-    pub fn set_screen_buffer_from_index(&mut self, index: usize) {
-        if let Some(buffer) = self.buffers.get(index) {
-            self.screen.set_current_buffer(buffer.clone()); // TODO Make screen accept a reference (need to use lifetime annotations)
+    pub fn draw_current_buffer(&mut self) {
+        if let Some(current_buffer) = self.buffers.get_mut(self.current_buffer_index) {
+            self.screen.draw_buffer(current_buffer);
         }
     }
 
-    pub fn draw_current_buffer(&mut self) {
-        self.screen.draw_current_buffer();
+    pub fn get_current_buffer_mut(&mut self) -> Option<&mut Buffer> {
+        self.buffers.get_mut(self.current_buffer_index)
+    }
+
+    pub fn get_current_buffer(&self) -> Option<&Buffer> {
+        self.buffers.get(self.current_buffer_index)
     }
 
     pub fn remove_buffer(&mut self, index: usize) -> Option<Buffer> {
@@ -61,21 +84,5 @@ impl Editor {
             return Some(self.buffers.remove(index));
         }
         None
-    }
-
-    pub fn run(&mut self) {
-        self.screen.draw_current_buffer();
-
-        // TODO Add normal, insert and visual mode
-        loop {
-            if let Ok(Key(key)) = read() {
-                match key.code {
-                    KeyCode::Esc => break,
-                    KeyCode::Char(c) => (), // Update buffer with character
-                    _ => (),
-                }
-            }
-            self.screen.draw_current_buffer();
-        }
     }
 }
