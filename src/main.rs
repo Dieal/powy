@@ -20,7 +20,7 @@ fn main() -> io::Result<()> {
     } else {
         let path = args.first().expect("Should have first argument");
         if let Ok(text) = fs::read_to_string(path) {
-            Editor::from_buffer(Buffer::from_text(text))
+            Editor::from_file(text, path.to_string())
         } else {
             print!("File {path} not found");
             Editor::new()

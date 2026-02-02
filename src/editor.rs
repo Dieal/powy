@@ -1,5 +1,7 @@
+use std::{fs, path::Path};
+
 use crossterm::event::{read, Event::Key, KeyCode};
-use log::info;
+use log::{debug, info};
 
 use crate::{Buffer, CursorStyle, screen::Screen};
 
@@ -38,6 +40,17 @@ impl Editor {
         })
     }
 
+    pub fn from_file(text: String, path: String) -> std::io::Result<Self> {
+        let mut buffer = Buffer::from_text(text);
+        buffer.path = Some(path);
+
+        let buffers: Vec<Buffer> = vec![buffer];
+        Ok(Editor {
+            buffers,
+            ..Editor::new()?
+        })
+    }
+
     pub fn run(&mut self) {
         self.draw_current_buffer();
 
@@ -53,9 +66,11 @@ impl Editor {
                 } else {
                     0
                 };
+
                 match mode {
                     EditorMode::Normal => {
                         match key.code {
+                            KeyCode::Tab => self.save_current_buffer_to_disk(),
                             KeyCode::Esc => break,
                             KeyCode::Left | KeyCode::Char('h') => current_buf.cursor.move_by(crate::constants::Direction::Left, 1),
                             KeyCode::Right | KeyCode::Char('l') => {
@@ -133,10 +148,39 @@ impl Editor {
         self.add_buffer_from(Buffer::from_text(text))
     }
 
+    //  TODO: use future IO manager struct to directly read from file. Move logic from main to a separate struct inside the editor
+    pub fn add_buffer_from_file(&mut self, text: String, path: String) -> &Buffer {
+        let mut buffer = Buffer::from_text(text);
+        buffer.path = Some(path);
+        self.add_buffer_from(buffer)
+    }
+
     pub fn draw_current_buffer(&mut self) {
         if let Some(current_buffer) = self.buffers.get_mut(self.current_buffer_index) {
             self.screen.draw_buffer(current_buffer);
         }
+    }
+
+    //  TODO: make it more efficient, don't write it from start each time, incremental
+    // saving
+    //  TODO: move this to a separate IO manager (read and write, different STDIN / STDOUT)
+    fn save_current_buffer_to_disk(&self) {
+        let buffer = self.get_current_buffer();
+        if let Some(buffer) = buffer {
+            if let Some(path) = &buffer.path {
+                let mut contents = String::new();
+                for line in &buffer.lines {
+                    contents.push_str(line);
+                    contents.push('\n');
+                }
+                fs::write(Path::new(path), contents);
+                debug!("Wrote file")
+            } else {
+                //  TODO: Prompt to create a new file, dialog to insert file name
+                debug!("no path")
+            }
+        }
+        
     }
 
     pub fn get_current_buffer_mut(&mut self) -> Option<&mut Buffer> {

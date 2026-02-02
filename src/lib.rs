@@ -1,3 +1,5 @@
+use std::path::Path;
+
 use constants::{Direction, ESC};
 use log::{debug, info};
 
