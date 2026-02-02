@@ -28,7 +28,7 @@ fn main() -> io::Result<()> {
     }?;
 
     editor.run();
-    Screen::flush();
 
+    Screen::erase(); // Erase after editor ends execution
     Ok(())
 }
