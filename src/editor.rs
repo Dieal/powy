@@ -1,4 +1,5 @@
-use crossterm::event::{self, read, Event::Key, KeyCode, ModifierKeyCode};
+use crossterm::event::{read, Event::Key, KeyCode};
+use log::info;
 
 use crate::{Buffer, CursorStyle, screen::Screen};
 
@@ -40,17 +41,35 @@ impl Editor {
     pub fn run(&mut self) {
         self.draw_current_buffer();
 
-        //  TODO: Add normal, insert and visual mode
         loop {
             let mode: EditorMode = self.mode;
             if let Ok(Key(key)) = read() {
                 let current_buf = self.get_current_buffer_mut().expect("Should have a default current buffer");
+                let buffer_len = current_buf.lines.len();
+                let cursor_row = current_buf.cursor.row;
+                let cursor_col = current_buf.cursor.col;
+                let current_row_size = if let Some(current_row) = current_buf.get_current_row() {
+                    current_row.len()
+                } else {
+                    0
+                };
                 match mode {
                     EditorMode::Normal => {
                         match key.code {
                             KeyCode::Esc => break,
                             KeyCode::Left | KeyCode::Char('h') => current_buf.cursor.move_by(crate::constants::Direction::Left, 1),
-                            KeyCode::Right | KeyCode::Char('l') => current_buf.cursor.move_by(crate::constants::Direction::Right, 1), // TODO: Add Check if it's possible
+                            KeyCode::Right | KeyCode::Char('l') => {
+                                if cursor_col < current_row_size { // Prevents cursor from going out of line bounds
+                                    current_buf.cursor.move_by(crate::constants::Direction::Right, 1);
+                                }
+                            }
+                            KeyCode::Down | KeyCode::Char('j') => {
+                                info!("{cursor_row}, {buffer_len}");
+                                if cursor_row < buffer_len {
+                                    current_buf.cursor.move_by(crate::constants::Direction::Down, 1)
+                                }
+                            },
+                            KeyCode::Up | KeyCode::Char('k') => current_buf.cursor.move_by(crate::constants::Direction::Up, 1),
                             KeyCode::Char('i') => self.set_mode(EditorMode::Insert),
 
                             // TODO: vim commands
@@ -63,7 +82,18 @@ impl Editor {
                         match key.code {
                             KeyCode::Esc => self.set_mode(EditorMode::Normal),
                             KeyCode::Left => current_buf.cursor.move_by(crate::constants::Direction::Left, 1),
-                            KeyCode::Right => current_buf.cursor.move_by(crate::constants::Direction::Right, 1), // TODO: Add Check if it's possible
+                            KeyCode::Right => {
+                                if cursor_col < current_row_size { // Prevents cursor from going out of line bounds
+                                    current_buf.cursor.move_by(crate::constants::Direction::Right, 1);
+                                }
+                            }
+                            KeyCode::Up => current_buf.cursor.move_by(crate::constants::Direction::Up, 1),
+                            KeyCode::Down => {
+                                info!("{cursor_row}, {buffer_len}");
+                                if cursor_row < buffer_len {
+                                    current_buf.cursor.move_by(crate::constants::Direction::Down, 1)
+                                }
+                            },
                             KeyCode::Backspace => current_buf.remove_char(),
                             KeyCode::Enter => current_buf.new_line(),
                             KeyCode::Char(c) => current_buf.insert_char(c), // Update buffer with character

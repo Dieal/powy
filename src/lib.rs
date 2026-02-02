@@ -45,9 +45,9 @@ pub struct Cursor {
 impl Cursor {
     pub fn move_by(&mut self, direction: Direction, offset: usize) {
         match direction {
-            Direction::Up => self.row = self.row.saturating_sub(offset),
+            Direction::Up => if self.row > 1 { self.row = self.row.saturating_sub(offset); }
             Direction::Down => self.row = self.row.saturating_add(offset),
-            Direction::Left => self.col = self.col.saturating_sub(offset),
+            Direction::Left => if self.col > 1 { self.col = self.col.saturating_sub(offset) }
             Direction::Right => self.col = self.col.saturating_add(offset),
         }
     }
