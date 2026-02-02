@@ -1,12 +1,21 @@
 use crossterm::event::{self, read, Event::Key, KeyCode, ModifierKeyCode};
 
-use crate::{screen::Screen, Buffer};
+use crate::{Buffer, CursorStyle, screen::Screen};
+
+#[derive(Default, Copy, Clone)]
+pub enum EditorMode {
+    #[default]
+    Normal,
+    Insert,
+    // Visual
+}
 
 #[derive(Default)]
 pub struct Editor {
     screen: Screen,
     buffers: Vec<Buffer>,
     current_buffer_index: usize,
+    mode: EditorMode,
 }
 
 impl Editor {
@@ -16,6 +25,15 @@ impl Editor {
             screen: Screen::new()?,
             buffers,
             current_buffer_index: 0,
+            mode: EditorMode::Normal,
+        })
+    }
+    
+    pub fn from_buffer(buffer: Buffer) -> std::io::Result<Self> {
+        let buffers: Vec<Buffer> = vec![buffer];
+        Ok(Editor {
+            buffers,
+            ..Editor::new()?
         })
     }
 
@@ -24,16 +42,35 @@ impl Editor {
 
         //  TODO: Add normal, insert and visual mode
         loop {
+            let mode: EditorMode = self.mode;
             if let Ok(Key(key)) = read() {
                 let current_buf = self.get_current_buffer_mut().expect("Should have a default current buffer");
-                match key.code {
-                    KeyCode::Esc => break,
-                    KeyCode::Left => current_buf.cursor.move_by(crate::constants::Direction::Left, 1),
-                    KeyCode::Right => current_buf.cursor.move_by(crate::constants::Direction::Right, 1), // TODO: Add Check if it's possible
-                    KeyCode::Backspace => current_buf.remove_char(),
-                    KeyCode::Enter => current_buf.new_line(),
-                    KeyCode::Char(c) => current_buf.insert_char(c), // Update buffer with character
-                    _ => (),
+                match mode {
+                    EditorMode::Normal => {
+                        match key.code {
+                            KeyCode::Esc => break,
+                            KeyCode::Left | KeyCode::Char('h') => current_buf.cursor.move_by(crate::constants::Direction::Left, 1),
+                            KeyCode::Right | KeyCode::Char('l') => current_buf.cursor.move_by(crate::constants::Direction::Right, 1), // TODO: Add Check if it's possible
+                            KeyCode::Char('i') => self.set_mode(EditorMode::Insert),
+
+                            // TODO: vim commands
+                            KeyCode::Char(_c) => {
+                            },
+                            _ => (),
+                        }
+                    },
+                    EditorMode::Insert => {
+                        match key.code {
+                            KeyCode::Esc => self.set_mode(EditorMode::Normal),
+                            KeyCode::Left => current_buf.cursor.move_by(crate::constants::Direction::Left, 1),
+                            KeyCode::Right => current_buf.cursor.move_by(crate::constants::Direction::Right, 1), // TODO: Add Check if it's possible
+                            KeyCode::Backspace => current_buf.remove_char(),
+                            KeyCode::Enter => current_buf.new_line(),
+                            KeyCode::Char(c) => current_buf.insert_char(c), // Update buffer with character
+                            _ => (),
+                        }
+
+                    }
                 }
             }
             self.draw_current_buffer();
@@ -85,5 +122,15 @@ impl Editor {
             return Some(self.buffers.remove(index));
         }
         None
+    }
+
+    fn set_mode(&mut self, mode: EditorMode) {
+        if let Some(buffer) = self.get_current_buffer_mut() {
+            match mode {
+                EditorMode::Normal => buffer.set_cursor_style(CursorStyle::SteadyBlock),
+                EditorMode::Insert => buffer.set_cursor_style(CursorStyle::SteadyBar),
+            }
+        }
+        self.mode = mode;
     }
 }

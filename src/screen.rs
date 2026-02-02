@@ -29,6 +29,9 @@ impl Screen {
         ghost_cursor.render();
         for line in &buffer.lines {
             print!("{}", line);
+
+            // Don't understand why, but switching the order of this two instructions
+            // causes text overlapping
             ghost_cursor.move_by(Direction::Down, 1);
             ghost_cursor.jump_to_col(1);
         }

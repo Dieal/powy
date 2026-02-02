@@ -1,15 +1,17 @@
 use constants::{Direction, ESC};
 use log::{debug, info};
-use screen::Screen;
 
 mod constants;
 pub mod screen;
 pub mod editor;
 
-#[derive(Clone)]
+#[derive(Clone, Default)]
 pub enum CursorStyle {
     BlinkingBlock,
+
+    #[default]
     SteadyBlock,
+
     BlinkingUnderline,
     SteadyUnderline,
     BlinkingBar,
@@ -100,7 +102,7 @@ impl Default for Cursor {
             row,
             col,
             visible: true,
-            style: CursorStyle::BlinkingBlock,
+            style: CursorStyle::default(),
         };
         cursor.set_visibility(true);
         cursor.jump(row, col);
@@ -121,7 +123,6 @@ impl Default for Buffer {
     fn default() -> Self {
         let mut cursor = Cursor::default();
         cursor.jump(1, 1); // Starts from column and row 1 for better rendering
-        cursor.set_style(CursorStyle::SteadyBar);
 
         let mut ghost_cursor = Cursor::default();
         ghost_cursor.set_visibility(false);
@@ -137,11 +138,15 @@ impl Default for Buffer {
 }
 
 impl Buffer {
-    fn from_text(text: String) -> Self {
+    pub fn from_text(text: String) -> Self {
         Self {
             lines: text.lines().map(String::from).collect(),
             ..Default::default()
         }
+    }
+
+    pub fn set_cursor_style(&mut self, style: CursorStyle) {
+        self.cursor.set_style(style);
     }
 
     fn insert_char(&mut self, char: char) {
