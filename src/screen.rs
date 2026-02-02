@@ -25,12 +25,12 @@ impl Screen {
         Self::erase();
 
         let ghost_cursor = &mut buffer.ghost_cursor;
+        ghost_cursor.jump(1, 1);
         ghost_cursor.render();
-        ghost_cursor.jump(0, 0);
         for line in &buffer.lines {
             print!("{}", line);
-            ghost_cursor.jump_to_col(0);
             ghost_cursor.move_by(Direction::Down, 1);
+            ghost_cursor.jump_to_col(1);
         }
         buffer.cursor.render();
         Self::flush();

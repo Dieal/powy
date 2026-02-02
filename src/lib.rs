@@ -148,7 +148,7 @@ impl Buffer {
         let cursor = &mut self.cursor;
         let (row, col) = (cursor.row, cursor.col);
         if let Some(line) = self.lines.get_mut(row.saturating_sub(1)) {
-            line.insert(col - 1, char);
+            line.insert(col.saturating_sub(1), char);
         } else {
             self.lines.push(String::from(char));
         }
@@ -184,7 +184,8 @@ impl Buffer {
     fn new_line(&mut self) {
         let cursor = &mut self.cursor;
         self.lines.push(String::new());
-        cursor.jump(cursor.row + 1, 0);
+        cursor.jump(cursor.row + 1, 1);
+        debug!("New Line...\n{:#?}", self.lines);
     }
 
     fn get_row_index_from_cursor(&self) -> usize {
